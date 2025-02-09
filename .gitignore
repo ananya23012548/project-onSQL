@@ -1,0 +1,5 @@
+.env
+node_modules
+git rm --cached .env
+git commit -m "Ignore .env file"
+git push origin main  # หรือ branch ที่ใช้งานอยู่

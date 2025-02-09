@@ -1,102 +1,101 @@
+require("dotenv").config();
 const express = require("express");
-const { MongoClient, ObjectId } = require("mongodb")
+const mongoose = require("mongoose");
+const cors = require("cors");
+
 const app = express();
+app.use(express.json());
+app.use(cors());
 
-app.use(express.json())
-let db;
-const client = new MongoClient("mongodb://localhost:27017");
-client.connect().then(() => {
-    db = client.db("ecommerce");
-    console.log("MongoDB connected");
-}).catch((err) => {
-    console.log("MongoDB unconnect");
+// ตรวจสอบค่าใน .env
+if (!process.env.MONGO_URI || !process.env.DB_NAME) {
+    console.error("Missing MONGO_URI or DB_NAME in .env file");
+    process.exit(1);
+}
+console.log(process.env.MONGO_URI);  // ตรวจสอบค่าที่โหลดมาจาก .env
+console.log(process.env.DB_NAME);
+// เชื่อมต่อ MongoDB
+const mongoURI = `${process.env.MONGO_URI}/${process.env.DB_NAME}`;
+
+mongoose.connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+    .then(() => console.log("MongoDB Connected"))
+    .catch(err => {
+        console.error("Error connecting to MongoDB:", err);
+        process.exit(1);  // หยุดการทำงานหากเชื่อมต่อ MongoDB ไม่สำเร็จ
+    });
+
+// สร้าง Schema ของ `stdhistory`
+const studentSchema = new mongoose.Schema({
+    ID: Number,
+    Fname: String,
+    Name: String,
+    "Eng-Name": String,
+    School: String,
+    "Degree name": String
 });
 
+const Student = mongoose.model("stdhistory", studentSchema, "stdhistory");
 
-// ดึงข้อมูลทั้งหมด
-app.get('/product', async (req, res) => {
+// 📌 GET - ดึงข้อมูลนักศึกษา
+app.get("/students", async (req, res) => {
     try {
-        const product = await db.collection("product").find().toArray();
-        res.json(product);
+        const students = await Student.find();
+        res.json(students);
     } catch (err) {
-        res.json("error");
+        res.status(500).json({ message: "Error fetching students", error: err });
     }
 });
 
-app.get('/product/topping/:topping', async (req, res) => {
+// 📌 POST - เพิ่มนักศึกษา
+app.post("/students", async (req, res) => {
     try {
-        const topping = req.params.topping;
-        const product = await db.collection("product").find({
-            "topping": { $in: [{ "name": topping }] }
-        }).toArray();
-        res.json(product);
+        const student = new Student(req.body);
+        await student.save();
+        res.json(student);
     } catch (err) {
-        res.json("error");
-    }
-});
-//ดึงข้อมูลที่มีราคามากกว่า 35
-app.get('/product/expensive', async (req, res) => {
-    try {
-        const products = await db.collection("product").find({ price: { $gt: 35 } }).toArray();
-        res.json(products);
-    } catch (err) {
-        res.json("error");
+        res.status(500).json({ message: "Error saving student", error: err });
     }
 });
 
-// ดึงข้อมูลรายการนั้น
-app.get('/product/:id', async (req, res) => {
+// 📌 PUT - แก้ไขข้อมูลนักศึกษา
+app.put("/students/:id", async (req, res) => {
     try {
-        const id = req.params.id;
-        const product = await db.collection("product").findOne({
-            "_id": new ObjectId(id)
+        await Student.findByIdAndUpdate(req.params.id, req.body);
+        res.json({ message: "Updated Successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Error updating student", error: err });
+    }
+});
+
+// 📌 DELETE - ลบนักศึกษา
+app.delete("/students/:id", async (req, res) => {
+    try {
+        await Student.findByIdAndDelete(req.params.id);
+        res.json({ message: "Deleted Successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Error deleting student", error: err });
+    }
+});
+
+// 📌 GET - ค้นหานักศึกษาด้วยชื่อ (ไทย & อังกฤษ)
+app.get("/students/search/:name", async (req, res) => {
+    try {
+        const students = await Student.find({
+            $or: [
+                { Name: new RegExp(req.params.name, "i") },
+                { "Eng-Name": new RegExp(req.params.name, "i") }
+            ]
         });
-        res.json(product);
+        res.json(students);
     } catch (err) {
-        res.json("error");
+        res.status(500).json({ message: "Error searching students", error: err });
     }
 });
 
-// เพิ่มข้อมูลใหม่
-app.post('/product', async (req, res) => {
-    try {
-        const data = req.body;
-        const product = await db.collection("product").insertOne(data);
-        res.json(product);
-    } catch (err) {
-        res.json("error");
-    }
-});
 
-// แก้ไขข้อมูล
-app.put('/product/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const data = req.body;
-        const product = await db.collection("product").updateOne({
-            "_id": new ObjectId(id)
-        }, {
-            $set: data
-        });
-        res.json(product);
-    } catch (err) {
-        res.json("error");
-    }
-});
-// ลบข้อมูลรายการนั้น 
-app.delete('/product/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-
-        const result = await db.collection("product").deleteOne({
-            "_id": new ObjectId(id)
-        });
-        res.json({ message: "Product deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ message: "Error deleting product", error: err });
-    }
-});
-
-app.listen(3000, () => {
-    console.log('Server started: success');
-});
+// เริ่มรันเซิร์ฟเวอร์
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

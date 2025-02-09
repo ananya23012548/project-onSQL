@@ -4,17 +4,28 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon app.js"
+    "start": "node App.js",
+    "dev": "nodemon App.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "introduction to mongodb\r สมาชิกในกลุ่ม\r 1.ธนันญา เซ่งนาค\r 2.อนัญญา อินทมาส",
   "dependencies": {
     "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "mongodb": "^6.13.0",
+    "mongoose": "^8.10.0",
     "nodemon": "^3.1.9"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ananya23012548/project-onSQL.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ananya23012548/project-onSQL/issues"
+  },
+  "homepage": "https://github.com/ananya23012548/project-onSQL#readme"
 }
