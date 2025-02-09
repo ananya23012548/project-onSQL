@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #45a049;
+            color: white;
+        }
+
+        .button {
+            padding: 10px 15px;
+            background-color: #b0a91f;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #4a0ecd;
+        }
+
+        .form-container {
+            margin: 20px 0;
+        }
+
+        .input-field {
+            padding: 10px;
+            margin: 5px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>ข้อมูลนักศึกษา</h1>
+
+    <div class="search-container">
+        <input type="text" id="search" placeholder="ค้นหาชื่อนักศึกษา..." class="input-field"
+            oninput="searchStudents()">
+    </div>
+
+    <div class="form-container">
+        <input type="text" id="id" class="input-field" placeholder="ID" />
+        <input type="text" id="fname" class="input-field" placeholder="คำนำหน้า" />
+        <input type="text" id="name" class="input-field" placeholder="ชื่อ" />
+        <input type="text" id="eng-Name" class="input-field" placeholder="ชื่อภาษาอังกฤษ" />
+        <input type="text" id="school" class="input-field" placeholder="โรงเรียน" />
+        <input type="text" id="degreeName" class="input-field" placeholder="หลักสูตร" />
+        <button class="button" onclick="addStudent()">เพิ่มข้อมูลนักศึกษา</button>
+        <button class="button" id="updateButton" onclick="updateStudent()"
+            style="display:none;">อัพเดทข้อมูลนักศึกษา</button>
+    </div>
+
+    <table id="studentTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>คำนำหน้า</th>
+                <th>ชื่อ</th>
+                <th>ชื่อภาษาอังกฤษ</th>
+                <th>โรงเรียน</th>
+                <th>หลักสูตร</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- ข้อมูลนักศึกษาจะถูกเพิ่มที่นี่ -->
+        </tbody>
+    </table>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/students';
+
+        // ฟังก์ชันดึงข้อมูลนักศึกษาจาก API
+        function fetchStudents() {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.querySelector("#studentTable tbody");
+                    tableBody.innerHTML = '';  // เคลียร์ข้อมูลเก่า
+                    data.forEach(student => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${student.ID}</td>
+                            <td>${student.Fname}</td>
+                            <td>${student.Name}</td>
+                            <td>${student['Eng-Name']}</td>
+                            <td>${student.School}</td>
+                            <td>${student['Degree name']}</td>
+                            <td>
+                                <button class="button" onclick="editStudent('${student._id}', '${student.ID}', '${student.Fname}', '${student.Name}', '${student['Eng-Name']}', '${student.School}', '${student['Degree name']}')">แก้ไข</button>
+                                <button class="button" onclick="deleteStudent('${student._id}')">ลบ</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error fetching students:', error));
+        }
+
+        // ฟังก์ชันเพิ่มข้อมูลนักศึกษา
+        async function addStudent() {
+            const student = {
+                ID: document.getElementById('id').value,
+                Fname: document.getElementById('fname').value,
+                Name: document.getElementById('name').value,
+                "Eng-Name": document.getElementById('eng-Name').value,
+                School: document.getElementById('school').value,
+                "Degree name": document.getElementById('degreeName').value
+            };
+
+            await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(student)
+            });
+
+            fetchStudents();
+        }
+
+        // ฟังก์ชันลบข้อมูลนักศึกษา
+        async function deleteStudent(id) {
+            await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+            fetchStudents();
+        }
+
+        // ฟังก์ชันแก้ไขข้อมูลนักศึกษา
+        function editStudent(id, studentId, fname, name, engName, school, degreeName) {
+            document.getElementById('id').value = studentId;
+            document.getElementById('fname').value = fname;
+            document.getElementById('name').value = name;
+            document.getElementById('eng-Name').value = engName;
+            document.getElementById('school').value = school;
+            document.getElementById('degreeName').value = degreeName;
+
+            // เปลี่ยนปุ่มเป็นอัปเดท
+            document.getElementById('updateButton').style.display = 'inline-block';
+            document.getElementById('updateButton').setAttribute('data-id', id);
+        }
+
+        // ฟังก์ชันอัปเดทข้อมูลนักศึกษา
+        async function updateStudent() {
+            const id = document.getElementById('updateButton').getAttribute('data-id');
+            const student = {
+                ID: document.getElementById('id').value,
+                Fname: document.getElementById('fname').value,
+                Name: document.getElementById('name').value,
+                "Eng-Name": document.getElementById('eng-Name').value,
+                School: document.getElementById('school').value,
+                "Degree name": document.getElementById('degreeName').value
+            };
+
+            await fetch(`${apiUrl}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(student)
+            });
+
+            // ซ่อนปุ่มอัปเดทและรีเซ็ตฟอร์ม
+            document.getElementById('updateButton').style.display = 'none';
+            document.getElementById('id').value = '';
+            document.getElementById('fname').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('eng-Name').value = '';
+            document.getElementById('school').value = '';
+            document.getElementById('degreeName').value = '';
+
+            fetchStudents();
+        }
+
+        // ฟังก์ชันค้นหานักศึกษา
+        function searchStudents() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const rows = document.querySelectorAll('#studentTable tbody tr');
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
+                const name = cells[2].textContent.toLowerCase();  // ค้นหาจากชื่อ
+                const engName = cells[3].textContent.toLowerCase();  // หรือชื่อภาษาอังกฤษ
+                if (name.includes(query) || engName.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // เรียกใช้ฟังก์ชันเริ่มต้น
+        fetchStudents();
+    </script>
+
+</body>
+
+</html>
